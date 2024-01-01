@@ -107,23 +107,6 @@ def deladmin(update:Update, context:CallbackContext):
             bot.sendMessage(chat_id,'Qandaydir xatolik')
 
 
-
-
-def viloyat(update:Update, context:CallbackContext):
-    btns=[
-        ['Тошкент ш','Тошкент в'],
-        ['Андижон в.','Бухоро в.'],
-        ['Жиззах в.','Қашқадарё в'],
-        ['Навоий в.','Наманган в.'],
-        ['Самарқанд в.','Сурхондарё в.'],
-        ['Сирдарё в.','Фарғона в'],
-        ['Хоразм в','Қорақалпоқ р']
-    ]
-    btn=ReplyKeyboardMarkup(btns)
-    bot=context.bot 
-    chat_id = update.message.chat_id
-    bot.send_message(chat_id=chat_id,text='Tanlang',reply_markup=btn)
-
 FIRST_NAME, FIRMA, PHONE_NUMBER, VIL, TUM, F_TUR, M_TUR = range(7)
 
 def first(update: Update, context: CallbackContext):
@@ -139,7 +122,7 @@ def save_info(update: Update, context: CallbackContext):
     user_data = context.user_data
     user_data['name'] = update.message.text
     update.message.reply_text("Firma nomini kiriting")
-    return F_TUR
+    return FIRMA
 
 def firma(update: Update, context: CallbackContext):
     user_data = context.user_data
@@ -180,7 +163,7 @@ def select_tuman(update: Update, context: CallbackContext):
                 btns.append([b[i][0]])
         btns = ReplyKeyboardMarkup(btns)
         update.message.reply_text("Tumanni tanlang:",reply_markup=btns)
-        return F_TUR
+        return TUM
     except:
         pass
 
@@ -195,20 +178,36 @@ def firma_turi(update: Update, context: CallbackContext):
     ]
     btns = ReplyKeyboardMarkup(btns)
     update.message.reply_text("Faoliyat turini ko'rsating:",reply_markup=btns)
-    # return USERNAME
-
-def save_username(update: Update, context: CallbackContext):
+    return F_TUR
+    
+def m_turi(update: Update, context: CallbackContext):
     user_data = context.user_data
-    user_data['username'] = update.message.text
+    user_data['f_tur'] = update.message.text
+    btns = [
+        ['Exportchi fabrika', 'Ichki bozor'],
+        ['Kichik fabrika','Otele'],
+        ['Yakkaxon chevar']
+    ]
+    btns = ReplyKeyboardMarkup(btns)
+    update.message.reply_text("Qiziqish bildirayotgan mahsulot turini ko'rsating:",reply_markup=btns)
+    return M_TUR
+
+
+def saving(update: Update, context: CallbackContext):
+    user_data = context.user_data
+    user_data['m_tur'] = update.message.text
 
     # Ma'lumotlar to'landi
     context.bot.send_message(update.effective_chat.id, "Ma'lumotlar to'landi:\n"
-                          f"Ism: {user_data['first_name']}\n"
+                          f"Ism: {user_data['name']}\n"
                           f"Telefon raqam: {user_data['phone_number']}\n"
-                          f"Manzil: {user_data['address']}\n"
-                          f"Username: {user_data['username']}")
+                          f"Firma nomi: {user_data['firma']}\n"
+                          f"Manzil: {user_data['viloyat']} - {user_data['tuman']}\n"
+                          f"Firma turi: {user_data['f_tur']}\n"
+                          f"Mahsulot turi: {user_data['m_tur']}\n"
+                          )
+                          
 
-    # Ma'lumotlarni to'plangan oynani to'liq ochish
     keyboard = [[InlineKeyboardButton("Ma'lumot to'ldirish", callback_data='info')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Assalomu alaykum! Malumotlarni to'ldirish uchun tugmani bosing.", reply_markup=reply_markup)
@@ -240,7 +239,9 @@ conv_handler = ConversationHandler(
         FIRMA: [MessageHandler(Filters.text & ~Filters.command, firma)],
         PHONE_NUMBER: [MessageHandler(Filters.text & ~Filters.command, save_phone)],
         VIL: [MessageHandler(Filters.text & ~Filters.command, select_tuman)],
-        TUM: [MessageHandler(Filters.text & ~Filters.command,firma_turi)]
+        TUM: [MessageHandler(Filters.text & ~Filters.command,firma_turi)],
+        F_TUR: [MessageHandler(Filters.text & ~Filters.command,m_turi)],
+        M_TUR: [MessageHandler(Filters.text & ~Filters.command,saving)]
     },
     fallbacks=[CommandHandler('cancel', cancel)]
 )
