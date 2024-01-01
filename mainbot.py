@@ -194,7 +194,7 @@ def firma_turi(update: Update, context: CallbackContext):
         ['Yakkaxon chevar']
     ]
     btns = ReplyKeyboardMarkup(btns)
-    update.message.reply_text("Faoliyat turini ko'rsating:"reply_markup=btns)
+    update.message.reply_text("Faoliyat turini ko'rsating:",reply_markup=btns)
     # return USERNAME
 
 def save_username(update: Update, context: CallbackContext):
