@@ -170,7 +170,6 @@ def select_tuman(update: Update, context: CallbackContext):
     cnt = sqlite3.connect('data.db')
     cr = cnt.cursor()
     a = cr.execute(f'SELECT id FROM adress WHERE val02="{update.message.text}"').fetchone()
-    print(a)
     try:
         b = cr.execute(f'SELECT name1 FROM adress WHERE int01={int(a[0])}').fetchall()
         btns = []
@@ -181,15 +180,21 @@ def select_tuman(update: Update, context: CallbackContext):
                 btns.append([b[i][0]])
         btns = ReplyKeyboardMarkup(btns)
         update.message.reply_text("Tumanni tanlang:",reply_markup=btns)
+        return F_TUR
     except:
         pass
 
 
-def save_address(update: Update, context: CallbackContext):
+def firma_turi(update: Update, context: CallbackContext):
     user_data = context.user_data
-    user_data['address'] = update.message.text
-
-    update.message.reply_text("Telegram usernamingizni kiriting:")
+    user_data['tuman'] = update.message.text
+    btns = [
+        ['Exportchi fabrika', 'Ichki bozor'],
+        ['Kichik fabrika','Otele'],
+        ['Yakkaxon chevar']
+    ]
+    btns = ReplyKeyboardMarkup(btns)
+    update.message.reply_text("Faoliyat turini ko'rsating:"reply_markup=btns)
     # return USERNAME
 
 def save_username(update: Update, context: CallbackContext):
@@ -232,9 +237,10 @@ conv_handler = ConversationHandler(
     entry_points=[CallbackQueryHandler(first,pattern='add')],
     states={
         FIRST_NAME: [MessageHandler(Filters.text & ~Filters.command, save_info)],
-        F_TUR: [MessageHandler(Filters.text & ~Filters.command, firma)],
+        FIRMA: [MessageHandler(Filters.text & ~Filters.command, firma)],
         PHONE_NUMBER: [MessageHandler(Filters.text & ~Filters.command, save_phone)],
         VIL: [MessageHandler(Filters.text & ~Filters.command, select_tuman)],
+        TUM: [MessageHandler(Filters.text & ~Filters.command,firma_turi)]
     },
     fallbacks=[CommandHandler('cancel', cancel)]
 )
