@@ -1,19 +1,20 @@
 from telegram.ext import Updater,CommandHandler,CallbackContext,MessageHandler,Filters,CallbackQueryHandler,ConversationHandler
 from telegram import (
     Bot,Update,ReplyKeyboardMarkup,KeyboardButton,InlineKeyboardMarkup,
-    InlineKeyboardButton,ChatAdministratorRights,ParseMode, MenuButtonWebApp,WebAppInfo
+    InlineKeyboardButton,ChatAdministratorRights,ParseMode, MenuButtonWebApp,WebAppInfo,InputFile
     )
 import sqlite3
 
 cnt = sqlite3.connect('data.db')
 cr = cnt.cursor()
-
-bot = Bot('6557277705:AAGnGBYgqwWnSNDarXDXwj__Eml6EcIobmQ')
+TOKEN='6557277705:AAHWeNRzvuaicVr0Kumwa0CM8wQ4Q2-woCU'
+bot = Bot('6557277705:AAHWeNRzvuaicVr0Kumwa0CM8wQ4Q2-woCU')
+updater = Updater(token=TOKEN, use_context=True)
 
 def start(update:Update, context:CallbackContext):
     cnt = sqlite3.connect('data.db')
     cr = cnt.cursor()
-    bot=context.bot 
+    bot=context.bot
     chat_id = update.message.chat_id
     command = f"""
         SELECT * FROM Admins WHERE user_id = "{chat_id}"
@@ -22,14 +23,13 @@ def start(update:Update, context:CallbackContext):
     if a:
         if a[0][2]=='1':
             text = "Assalomu alaykum botga xush kelibsiz, bo'limlardan birini tanlang."
-            btn1 = InlineKeyboardButton('Statistika',callback_data=f'stc')
+            btn1 = InlineKeyboardButton('Statistika',callback_data=f'stc all')
             btn2 = InlineKeyboardButton('Admin⚙️',callback_data='admin stng')
             btn = InlineKeyboardMarkup([[btn1,btn2]])
         else:
             text = "Assalomu alaykum botga xush kelibsiz, bo'limlardan birini tanlang."
-            btn1 = InlineKeyboardButton('Statistikam',callback_data=f'stc {chat_id}')
-            btn2 = InlineKeyboardButton('Ma\'lumot qo\'shish',callback_data=f'add {chat_id}')
-            btn = InlineKeyboardMarkup([[btn1,btn2]])
+            btns = [['Statistikam🗒']]
+            btn = ReplyKeyboardMarkup(btns,resize_keyboard=True)
         bot.sendMessage(chat_id,text,reply_markup=btn)
 
 
@@ -67,7 +67,7 @@ def AdminSetting(update:Update, context:CallbackContext):
 
 
 def addadmin(update:Update, context:CallbackContext):
-    bot=context.bot 
+    bot=context.bot
     chat_id = update.message.chat_id
     data = update.message.text
     cnt = sqlite3.connect('data.db')
@@ -86,9 +86,9 @@ def addadmin(update:Update, context:CallbackContext):
         bot.sendMessage(chat_id,'✅')
 
 
-    
+
 def deladmin(update:Update, context:CallbackContext):
-    bot=context.bot 
+    bot=context.bot
     chat_id = update.message.chat_id
     data = update.message.text
     cnt = sqlite3.connect('data.db')
@@ -106,15 +106,59 @@ def deladmin(update:Update, context:CallbackContext):
         except:
             bot.sendMessage(chat_id,'Qandaydir xatolik')
 
+import csv
+
+def sqlite_to_csv(database_name, table_name, csv_file):
+    # SQLite bazasiga ulanamiz
+    connection = sqlite3.connect(database_name)
+    cursor = connection.cursor()
+
+    # SQL so'rovni ishga tushiramiz
+    query = f"SELECT * FROM {table_name}"
+    cursor.execute(query)
+
+    # CSV faylni yaratamiz va ma'lumotlarni yozamiz
+    with open(csv_file, 'w', newline='', encoding='utf-8') as file:
+        csv_writer = csv.writer(file)
+
+        # Ustun nomlarini yozamiz
+        column_names = [description[0] for description in cursor.description]
+        csv_writer.writerow(column_names)
+
+        # Ma'lumotlarni yozamiz
+        csv_writer.writerows(cursor)
+
+    # Ulanishni yopamiz
+    connection.close()
+
+def statistika(update:Update, context:CallbackContext):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+    msg = query.message.message_id
+    bot = context.bot
+    bot.delete_message(chat_id,msg)
+    a = query.data.split(' ')[1]
+    cnt = sqlite3.connect('data.db')
+    cr = cnt.cursor()
+    b = cr.execute(f"SELECT COUNT(id) FROM firma_data").fetchone()
+    bot.send_message(chat_id,f'Bazadagi ma\'lumotlar: {b[0]} ta')
+    sqlite_to_csv('data.db', 'firma_data', 'mydata.csv')
+    file = open('mydata.csv')
+    bot.sendDocument(chat_id,file)
+
+def my_statistik(update:Update, context:CallbackContext):
+    bot=context.bot
+    chat_id = update.message.chat_id
+    cnt = sqlite3.connect('data.db')
+    cr = cnt.cursor()
+    b = cr.execute(f"SELECT COUNT(id) FROM firma_data WHERE user_id = '{chat_id}'").fetchone()
+    bot.send_message(chat_id,f'Sizning kiritgan malumotlaringgiz: {b[0]} ta')
 
 FIRST_NAME, FIRMA, PHONE_NUMBER, VIL, TUM, F_TUR, M_TUR = range(7)
 
 def first(update: Update, context: CallbackContext):
-    query = update.callback_query
-    chat_id = query.message.chat_id
-    msg = query.message.message_id
     bot=context.bot
-    bot.delete_message(chat_id,msg)
+    chat_id = update.message.chat_id
     bot.sendMessage(chat_id,"Assalomu alaykum! Xaridor ismini kiriting.")
     return FIRST_NAME
 
@@ -179,7 +223,7 @@ def firma_turi(update: Update, context: CallbackContext):
     btns = ReplyKeyboardMarkup(btns)
     update.message.reply_text("Faoliyat turini ko'rsating:",reply_markup=btns)
     return F_TUR
-    
+
 def m_turi(update: Update, context: CallbackContext):
     user_data = context.user_data
     user_data['f_tur'] = update.message.text
@@ -195,10 +239,23 @@ def m_turi(update: Update, context: CallbackContext):
 
 def saving(update: Update, context: CallbackContext):
     user_data = context.user_data
+    chat_id = update.message.chat_id
     user_data['m_tur'] = update.message.text
-
-    # Ma'lumotlar to'landi
-    context.bot.send_message(update.effective_chat.id, "Ma'lumotlar to'landi:\n"
+    cnt = sqlite3.connect('data.db')
+    cr = cnt.cursor()
+    command = f"""INSERT INTO firma_data (user_id,name,firma,tel,manzil,firma_turi,mahsulot_turi) VALUES (
+    "{chat_id}",
+    "{user_data['name']}",
+    "{user_data['firma']}",
+    "{user_data['phone_number']}",
+    "{user_data['viloyat']} - {user_data['tuman']}",
+    "{user_data['f_tur']}",
+    "{user_data['m_tur']}"
+    )
+    """
+    cr.execute(command)
+    cnt.commit()
+    context.bot.send_message(update.effective_chat.id, "Ma'lumotlar qo'shildi:\n"
                           f"Ism: {user_data['name']}\n"
                           f"Telefon raqam: {user_data['phone_number']}\n"
                           f"Firma nomi: {user_data['firma']}\n"
@@ -206,12 +263,12 @@ def saving(update: Update, context: CallbackContext):
                           f"Firma turi: {user_data['f_tur']}\n"
                           f"Mahsulot turi: {user_data['m_tur']}\n"
                           )
-                          
+
 
     keyboard = [[InlineKeyboardButton("Ma'lumot to'ldirish", callback_data='info')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Assalomu alaykum! Malumotlarni to'ldirish uchun tugmani bosing.", reply_markup=reply_markup)
-    
+
     # Ma'lumotlarni to'plangan o'ynani to'ldirish
     user_data.clear()
 
@@ -225,29 +282,30 @@ def cancel(update: Update, context: CallbackContext):
 
 
 
+# updater=Updater('6557277705:AAGnGBYgqwWnSNDarXDXwj__Eml6EcIobmQ')
 
-updater=Updater('6557277705:AAGnGBYgqwWnSNDarXDXwj__Eml6EcIobmQ')
 
-updater.dispatcher.add_handler(CommandHandler('start',start))
-dp = updater.dispatcher
+# dp = updater.dispatcher
+# dp.add_handler(CommandHandler('start',start))
 
-    # ConversationHandlerni qo'shish
-conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(first,pattern='add')],
-    states={
-        FIRST_NAME: [MessageHandler(Filters.text & ~Filters.command, save_info)],
-        FIRMA: [MessageHandler(Filters.text & ~Filters.command, firma)],
-        PHONE_NUMBER: [MessageHandler(Filters.text & ~Filters.command, save_phone)],
-        VIL: [MessageHandler(Filters.text & ~Filters.command, select_tuman)],
-        TUM: [MessageHandler(Filters.text & ~Filters.command,firma_turi)],
-        F_TUR: [MessageHandler(Filters.text & ~Filters.command,m_turi)],
-        M_TUR: [MessageHandler(Filters.text & ~Filters.command,saving)]
-    },
-    fallbacks=[CommandHandler('cancel', cancel)]
-)
-dp.add_handler(conv_handler)
-updater.dispatcher.add_handler(CallbackQueryHandler(AdminSetting,pattern='admin'))
-updater.dispatcher.add_handler(MessageHandler(Filters.regex(r'^\+'),addadmin))
-updater.dispatcher.add_handler(MessageHandler(Filters.regex(r'^\-'),deladmin))
-updater.start_polling()
-updater.idle()
+#     # ConversationHandlerni qo'shish
+# conv_handler = ConversationHandler(
+#     entry_points=[CallbackQueryHandler(first,pattern='add')],
+#     states={
+#         FIRST_NAME: [MessageHandler(Filters.text & ~Filters.command, save_info)],
+#         FIRMA: [MessageHandler(Filters.text & ~Filters.command, firma)],
+#         PHONE_NUMBER: [MessageHandler(Filters.text & ~Filters.command, save_phone)],
+#         VIL: [MessageHandler(Filters.text & ~Filters.command, select_tuman)],
+#         TUM: [MessageHandler(Filters.text & ~Filters.command,firma_turi)],
+#         F_TUR: [MessageHandler(Filters.text & ~Filters.command,m_turi)],
+#         M_TUR: [MessageHandler(Filters.text & ~Filters.command,saving)]
+#     },
+#     fallbacks=[CommandHandler('cancel', cancel)]
+# )
+# dp.add_handler(conv_handler)
+# dp.add_handler(CallbackQueryHandler(AdminSetting,pattern='admin'))
+# dp.add_handler(CallbackQueryHandler(statistika,pattern='stc'))
+# dp.add_handler(MessageHandler(Filters.regex(r'^\+'),addadmin))
+# dp.add_handler(MessageHandler(Filters.regex(r'^\-'),deladmin))
+# updater.start_polling()
+# updater.idle()
